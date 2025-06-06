@@ -4,7 +4,6 @@ import sys
 import subprocess
 import requests
 import json
-import exiftool
 import socket
 import argparse
 import re
